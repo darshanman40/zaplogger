@@ -1,0 +1,81 @@
+[dev]
+Env = "dev"
+RabbitHost     = "localhost:5672"
+RabbitLogin    = "guest"
+RabbitPassword = "guest"
+
+[dev.log.info]
+tracelevel = "infolevel"
+stacktrace =  false
+erroroutput = false
+caller = false
+caller_skip= 1
+async = false
+[dev.log.warn]
+tracelevel = "warnlevel"
+stacktrace =  false
+erroroutput = true
+caller = false
+caller_skip= 1
+async = false
+[dev.log.err]
+tracelevel = "errorlevel"
+stacktrace =  true
+erroroutput = false
+caller = false
+caller_skip=2
+async = false
+[dev.log.panic]
+tracelevel = "paniclevel"
+stacktrace =  true
+erroroutput = true
+caller = false
+caller_skip = 2
+async = false
+
+################################################################################################################
+################################################################################################################
+################################################################################################################
+
+[debug]
+Env = "debug"
+RabbitHost     = "localhost:5672"
+RabbitLogin    = "guest"
+RabbitPassword = "guest"
+
+
+[debug.log.info]
+tracelevel = "infolevel"
+stacktrace =  false
+erroroutput = false
+caller = false
+caller_skip= 1
+async = false
+[debug.log.warn]
+tracelevel = "warnlevel"
+stacktrace =  false
+erroroutput = true
+caller = false
+caller_skip= 1
+async = false
+[debug.log.err]
+tracelevel = "errorlevel"
+stacktrace =  true
+erroroutput = false
+caller = true
+caller_skip=2
+async = false
+[debug.log.panic]
+tracelevel = "paniclevel"
+stacktrace =  true
+erroroutput = true
+caller = true
+caller_skip = 2
+async = false
+[debug.log.debug]
+tracelevel = "debuglevel"
+stacktrace =  false
+erroroutput = true
+caller = false
+caller_skip = 1
+async = false
