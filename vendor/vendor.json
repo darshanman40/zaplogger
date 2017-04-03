@@ -1,0 +1,56 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "hqDDDpue/5363luidNMBS8z8eJU=",
+			"path": "github.com/BurntSushi/toml",
+			"revision": "99064174e013895bbd9b025c31100bd1d9b590ca",
+			"revisionTime": "2016-07-17T15:07:09Z"
+		},
+		{
+			"checksumSHA1": "6NS7FWJl1FobB+Xfe4SzBGD+75g=",
+			"origin": "go.uber.org/zap/vendor/go.uber.org/atomic",
+			"path": "go.uber.org/atomic",
+			"revision": "d0f04d90ba7d8656474811feff10a4023f80e74a",
+			"revisionTime": "2017-02-28T00:35:55Z"
+		},
+		{
+			"checksumSHA1": "UsD89pAowuuxAZij2AdDgclPqVc=",
+			"path": "go.uber.org/zap",
+			"revision": "d0f04d90ba7d8656474811feff10a4023f80e74a",
+			"revisionTime": "2017-02-28T00:35:55Z"
+		},
+		{
+			"checksumSHA1": "3S+mwcCDqfnHXPCwtw6Y95SQSPs=",
+			"path": "go.uber.org/zap/buffer",
+			"revision": "d0f04d90ba7d8656474811feff10a4023f80e74a",
+			"revisionTime": "2017-02-28T00:35:55Z"
+		},
+		{
+			"checksumSHA1": "2hFf4IKGIpZac1I8ywe0GvzQC9U=",
+			"path": "go.uber.org/zap/internal/bufferpool",
+			"revision": "d0f04d90ba7d8656474811feff10a4023f80e74a",
+			"revisionTime": "2017-02-28T00:35:55Z"
+		},
+		{
+			"checksumSHA1": "b80CJExrVpXu3SA1iCQ6uLqTn2c=",
+			"path": "go.uber.org/zap/internal/exit",
+			"revision": "d0f04d90ba7d8656474811feff10a4023f80e74a",
+			"revisionTime": "2017-02-28T00:35:55Z"
+		},
+		{
+			"checksumSHA1": "d64rk9Ro96tHlg+Ld69Vq2bMVto=",
+			"path": "go.uber.org/zap/internal/multierror",
+			"revision": "d0f04d90ba7d8656474811feff10a4023f80e74a",
+			"revisionTime": "2017-02-28T00:35:55Z"
+		},
+		{
+			"checksumSHA1": "rdWcadrOagfJ3EQkeJV0By2uCog=",
+			"path": "go.uber.org/zap/zapcore",
+			"revision": "d0f04d90ba7d8656474811feff10a4023f80e74a",
+			"revisionTime": "2017-02-28T00:35:55Z"
+		}
+	],
+	"rootPath": "github.com/zaplogger"
+}
