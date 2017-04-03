@@ -27,6 +27,8 @@ var (
 		EncodeTime:     zapcore.EpochTimeEncoder,
 		EncodeDuration: zapcore.SecondsDurationEncoder,
 	}
+
+	zapMap map[string]func(string, ...zapcore.Field)
 )
 
 //Logger to implement zap logger
@@ -54,21 +56,22 @@ type logger struct {
 }
 
 type logMessages struct {
-	log    *zap.Logger
-	msg    string
-	fields map[string]interface{}
+	log     *zap.Logger
+	msg     string
+	logType string
+	fields  map[string]interface{}
 }
 
 var (
 	logInfoChan, logWarnChan, logErrChan, logPanicChan,
-	logDebugChan chan logMessages
+	logDebugChan, logChan chan logMessages
 	env  string
 	logr Logger
 )
 
 func (l *logger) Info(msg string, opts map[string]interface{}) {
 	if l.infoAsync {
-		logInfoChan <- logMessages{log: l.logInfo, msg: msg, fields: opts}
+		logChan <- logMessages{logType: infostring, msg: msg, fields: opts}
 		return
 	}
 	zapOpts := GetFields(opts)
@@ -77,7 +80,7 @@ func (l *logger) Info(msg string, opts map[string]interface{}) {
 
 func (l *logger) Warning(msg string, opts map[string]interface{}) {
 	if l.warnAsync {
-		logWarnChan <- logMessages{log: l.logWarn, msg: msg, fields: opts}
+		logChan <- logMessages{logType: warnstring, msg: msg, fields: opts}
 		return
 	}
 	zapOpts := GetFields(opts)
@@ -87,7 +90,7 @@ func (l *logger) Warning(msg string, opts map[string]interface{}) {
 
 func (l *logger) Error(msg string, opts map[string]interface{}) {
 	if l.errAsync {
-		logErrChan <- logMessages{log: l.logErr, msg: msg, fields: opts}
+		logChan <- logMessages{logType: errstring, msg: msg, fields: opts}
 		return
 	}
 	zapOpts := GetFields(opts)
@@ -97,7 +100,7 @@ func (l *logger) Error(msg string, opts map[string]interface{}) {
 
 func (l *logger) Panic(msg string, opts map[string]interface{}) {
 	if l.panicAsync {
-		logPanicChan <- logMessages{log: l.logPanic, msg: msg, fields: opts}
+		logChan <- logMessages{logType: panicstring, msg: msg, fields: opts}
 		return
 	}
 	zapOpts := GetFields(opts)
@@ -106,7 +109,7 @@ func (l *logger) Panic(msg string, opts map[string]interface{}) {
 
 func (l *logger) Debug(msg string, opts map[string]interface{}) {
 	if l.debugAsync {
-		logDebugChan <- logMessages{log: l.logDebug, msg: msg, fields: opts}
+		logChan <- logMessages{logType: debugstring, msg: msg, fields: opts}
 		return
 	}
 	zapOpts := GetFields(opts)
@@ -236,6 +239,11 @@ func zapCoreConfig(ws zapcore.WriteSyncer, l zapcore.Level) zapcore.Core {
 	)
 }
 
+func initMap(l logger) {
+	zapMap = make(map[string]func(string, ...zapcore.Field))
+	zapMap[infostring] = l.logInfo.Info
+}
+
 //NewLogger Get new instance of Logger
 func NewLogger(data, env string) Logger {
 
@@ -247,18 +255,25 @@ func NewLogger(data, env string) Logger {
 	if err != nil {
 		log.Fatal("Error at logger: ", err)
 	}
+	var loger *logger
+	zapMap = make(map[string]func(string, ...zapcore.Field))
 	if l == nil {
-		logr = &logger{
-			logInfo:   zap.NewNop(),
-			logWarn:   zap.NewNop(),
-			logErr:    zap.NewNop(),
-			logPanic:  zap.NewNop(),
-			logDebug:  zap.NewNop(),
-			fileClose: f,
+		loger = &logger{
+			logInfo:    zap.NewNop(),
+			infoAsync:  false,
+			logWarn:    zap.NewNop(),
+			warnAsync:  false,
+			logErr:     zap.NewNop(),
+			errAsync:   false,
+			logPanic:   zap.NewNop(),
+			panicAsync: false,
+			logDebug:   zap.NewNop(),
+			debugAsync: false,
+			fileClose:  f,
 		}
 	} else {
 
-		logr = &logger{
+		loger = &logger{
 			logInfo:    GetZapLogger(ws, l[infostring]),
 			infoAsync:  l[infostring].Async,
 			logWarn:    GetZapLogger(ws, l[warnstring]),
@@ -273,11 +288,17 @@ func NewLogger(data, env string) Logger {
 		}
 	}
 
-	logInfoChan = make(chan logMessages)
-	logWarnChan = make(chan logMessages)
-	logErrChan = make(chan logMessages)
-	logPanicChan = make(chan logMessages)
-	logDebugChan = make(chan logMessages)
+	logr = loger
+
+	zapMap[infostring] = loger.logInfo.Info
+	zapMap[warnstring] = loger.logWarn.Warn
+	zapMap[errstring] = loger.logErr.Error
+	zapMap[panicstring] = loger.logPanic.Panic
+	zapMap[debugstring] = loger.logDebug.Debug
+
+	logChan = make(chan logMessages)
+
+	log.Println("Starting Log Gorutine")
 	LogRoutine()
 	return logr
 }
@@ -287,25 +308,9 @@ func LogRoutine() {
 	go func() {
 		for {
 			select {
-			case l := <-logInfoChan:
+			case l := <-logChan:
 				opts := GetFields(l.fields)
-				l.log.Info(l.msg, opts...)
-
-			case l := <-logWarnChan:
-				opts := GetFields(l.fields)
-				l.log.Warn(l.msg, opts...)
-
-			case l := <-logErrChan:
-				opts := GetFields(l.fields)
-				l.log.Error(l.msg, opts...)
-
-			case l := <-logPanicChan:
-				opts := GetFields(l.fields)
-				l.log.Panic(l.msg, opts...)
-
-			case l := <-logDebugChan:
-				opts := GetFields(l.fields)
-				l.log.Debug(l.msg, opts...)
+				zapMap[l.logType](l.msg, opts...)
 			}
 		}
 	}()
