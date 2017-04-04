@@ -296,7 +296,7 @@ func NewLogger(data, env string) Logger {
 	zapMap[panicstring] = loger.logPanic.Panic
 	zapMap[debugstring] = loger.logDebug.Debug
 
-	logChan = make(chan logMessages)
+	logChan = make(chan logMessages, 5)
 
 	log.Println("Starting Log Gorutine")
 	LogRoutine()
