@@ -3,7 +3,7 @@ Env = "dev"
 RabbitHost     = "localhost:5672"
 RabbitLogin    = "guest"
 RabbitPassword = "guest"
-
+log_buffer_size=5
 [dev.log.info]
 tracelevel = "infolevel"
 stacktrace =  false
@@ -42,7 +42,7 @@ Env = "debug"
 RabbitHost     = "localhost:5672"
 RabbitLogin    = "guest"
 RabbitPassword = "guest"
-
+log_buffer_size=5
 
 [debug.log.info]
 tracelevel = "infolevel"
@@ -50,32 +50,32 @@ stacktrace =  false
 erroroutput = false
 caller = false
 caller_skip= 1
-async = false
+async = true
 [debug.log.warn]
 tracelevel = "warnlevel"
 stacktrace =  false
 erroroutput = true
 caller = false
 caller_skip= 1
-async = false
+async = true
 [debug.log.err]
 tracelevel = "errorlevel"
 stacktrace =  true
 erroroutput = false
 caller = true
 caller_skip=2
-async = false
+async = true
 [debug.log.panic]
 tracelevel = "paniclevel"
 stacktrace =  true
 erroroutput = true
 caller = true
 caller_skip = 2
-async = false
+async = true
 [debug.log.debug]
 tracelevel = "debuglevel"
 stacktrace =  false
 erroroutput = true
 caller = false
 caller_skip = 1
-async = false
+async = true

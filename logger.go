@@ -13,6 +13,24 @@ const (
 	errstring   = "err"
 	panicstring = "panic"
 	debugstring = "debug"
+
+	emptyString = ""
+
+	infolevelString  = "infolevel"
+	warnlevelString  = "warnlevel"
+	errlevelString   = "errlevel"
+	paniclevelString = "paniclevel"
+	debuglevelString = "debuglevel"
+
+	noMatchFound = "No match found for logger zap fields type:"
+
+	stderr = "stderr"
+
+	staringLogroutine = "Starting Log Gorutine"
+
+	loadingFail1  = "Load LogConfig config failed: "
+	loadingFail2  = ".\nLoading default log config"
+	errorAtLogger = "Error at logger: "
 )
 
 var (
@@ -118,6 +136,7 @@ func (l *logger) Debug(msg string, opts map[string]interface{}) {
 
 func (l *logger) CloseAll() {
 	l.fileClose()
+	close(logChan)
 }
 
 //GetFields conver maps into zapcore.Fields
@@ -170,7 +189,7 @@ func GetFields(fields map[string]interface{}) []zapcore.Field {
 		case *error:
 			zapFields[i] = zap.Error(*v)
 		default:
-			log.Fatal("No match found for logger zap fields type:", v)
+			log.Fatal(noMatchFound, v)
 		}
 		i++
 	}
@@ -180,7 +199,7 @@ func GetFields(fields map[string]interface{}) []zapcore.Field {
 //GetInstance to retrieve single instance of Logger
 func GetInstance() Logger {
 	if logr == nil {
-		logr = NewLogger("", "")
+		logr = NewLogger(emptyString, emptyString)
 	}
 	return logr
 }
@@ -191,7 +210,7 @@ func GetZapLogger(ws zapcore.WriteSyncer, l *Log) *zap.Logger {
 
 	var zc zapcore.Core
 	var zl zapcore.Level
-	if l.Tracelevel != "" {
+	if l.Tracelevel != emptyString {
 		zl = getLevel(l.Tracelevel)
 	}
 
@@ -217,15 +236,15 @@ func GetZapLogger(ws zapcore.WriteSyncer, l *Log) *zap.Logger {
 
 func getLevel(s string) zapcore.Level {
 	switch s {
-	case "infolevel":
+	case infolevelString:
 		return zapcore.InfoLevel
-	case "warnlevel":
+	case warnlevelString:
 		return zapcore.WarnLevel
-	case "errorlevel":
+	case errlevelString:
 		return zapcore.ErrorLevel
-	case "paniclevel":
+	case paniclevelString:
 		return zapcore.PanicLevel
-	case "debuglevel":
+	case debuglevelString:
 		return zapcore.DebugLevel
 	}
 	return 10
@@ -239,21 +258,16 @@ func zapCoreConfig(ws zapcore.WriteSyncer, l zapcore.Level) zapcore.Core {
 	)
 }
 
-func initMap(l logger) {
-	zapMap = make(map[string]func(string, ...zapcore.Field))
-	zapMap[infostring] = l.logInfo.Info
-}
-
 //NewLogger Get new instance of Logger
 func NewLogger(data, env string) Logger {
 
 	l, err := LoadLogConfig(data, env)
 	if err != nil {
-		log.Println("Load LogConfig config failed: " + err.Error() + ".\nLoading default log config")
+		log.Println(loadingFail1 + err.Error() + loadingFail2)
 	}
-	ws, f, err := zap.Open("stderr")
+	ws, f, err := zap.Open(stderr)
 	if err != nil {
-		log.Fatal("Error at logger: ", err)
+		log.Fatal(errorAtLogger, err)
 	}
 	var loger *logger
 	zapMap = make(map[string]func(string, ...zapcore.Field))
@@ -296,22 +310,19 @@ func NewLogger(data, env string) Logger {
 	zapMap[panicstring] = loger.logPanic.Panic
 	zapMap[debugstring] = loger.logDebug.Debug
 
-	logChan = make(chan logMessages, 5)
+	logChan = make(chan logMessages, getLogBufferSize())
 
-	log.Println("Starting Log Gorutine")
-	LogRoutine()
+	log.Println(staringLogroutine)
+	go LogRoutine()
 	return logr
 }
 
 //LogRoutine ...
 func LogRoutine() {
-	go func() {
-		for {
-			select {
-			case l := <-logChan:
-				opts := GetFields(l.fields)
-				zapMap[l.logType](l.msg, opts...)
-			}
-		}
-	}()
+
+	for l := range logChan {
+		opts := GetFields(l.fields)
+		zapMap[l.logType](l.msg, opts...)
+	}
+
 }

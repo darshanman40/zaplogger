@@ -2,13 +2,16 @@ package logger
 
 import (
 	"errors"
+	"io/ioutil"
+	"log"
 	"testing"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-var tomlcontent = `[dev]
+var (
+	tomlcontent = `[dev]
 Env = "dev"
 RabbitHost     = "localhost:5672"
 RabbitLogin    = "guest"
@@ -60,6 +63,49 @@ stacktrace =  false
 erroroutput = false
 caller = false
 caller_skip= 1
+async = true
+[debug.log.warn]
+tracelevel = "warnlevel"
+stacktrace =  false
+erroroutput = true
+caller = false
+caller_skip= 1
+async = true
+[debug.log.err]
+tracelevel = "errorlevel"
+stacktrace =  true
+erroroutput = false
+caller = true
+caller_skip=2
+async = true
+[debug.log.panic]
+tracelevel = "paniclevel"
+stacktrace =  true
+erroroutput = true
+caller = true
+caller_skip = 2
+async = true
+[debug.log.debug]
+tracelevel = "debuglevel"
+stacktrace =  false
+erroroutput = true
+caller = false
+caller_skip = 1
+async = true
+`
+
+	syncLogConfig = `[debug]
+Env = "debug"
+RabbitHost     = "localhost:5672"
+RabbitLogin    = "guest"
+RabbitPassword = "guest"
+
+[debug.log.info]
+tracelevel = "infolevel"
+stacktrace =  false
+erroroutput = false
+caller = false
+caller_skip= 1
 async = false
 [debug.log.warn]
 tracelevel = "warnlevel"
@@ -90,9 +136,10 @@ caller = false
 caller_skip = 1
 async = false
 `
+)
 
 func TestGetFile(t *testing.T) {
-	s := getFile("config.toml")
+	s := getFile("config.sample.toml")
 	if s != tomlcontent {
 		t.Fail()
 	}
@@ -100,7 +147,7 @@ func TestGetFile(t *testing.T) {
 
 func TestLoadLogger(t *testing.T) {
 
-	l := NewLogger(getFile("config.toml"), "debug")
+	l := NewLogger(getFile("config.sample.toml"), "debug")
 	if l != GetInstance() {
 		t.Fail()
 	}
@@ -115,7 +162,6 @@ func TestEmptyLogger(t *testing.T) {
 }
 
 func TestIntsGetFields(t *testing.T) {
-	// err := errors.New("custom error")
 	origZapInts := zap.Ints("intsKey", []int{int(9)})
 	origZapInt8s := zap.Int8s("int8sKey", []int8{int8(9)})
 	origZapInt16s := zap.Int16s("int16sKey", []int16{int16(9)})
@@ -156,7 +202,6 @@ func TestIntsGetFields(t *testing.T) {
 }
 
 func TestFloatsGetFields(t *testing.T) {
-	// err := errors.New("custom error")
 	origZapFloat32s := zap.Float32s("float32sKey", []float32{float32(9)})
 	origZapFloat64s := zap.Float64s("float64sKey", []float64{float64(9)})
 
@@ -221,9 +266,37 @@ func TestGetFields(t *testing.T) {
 	}
 	fields := GetFields(m)
 	if !testEqField(fields, originalFields) {
-		//t.Fatalf("list mismatch")
 		t.Fail()
 	}
+}
+
+func BenchmarkFullAsync(b *testing.B) {
+	l := NewLogger(getFile("config.sample.toml"), "debug")
+	for i := 0; i < b.N; i++ {
+		l.Info("test", map[string]interface{}{
+			"test type": "async",
+		})
+	}
+}
+
+func BenchmarkFullSync(b *testing.B) {
+	l := NewLogger(syncLogConfig, "debug")
+	for i := 0; i < b.N; i++ {
+		l.Info("test", map[string]interface{}{
+			"test type": "sync",
+		})
+	}
+}
+
+func getFile(fpath string) string {
+	if fpath == "" {
+		return ""
+	}
+	bs, err := ioutil.ReadFile(fpath)
+	if err != nil {
+		log.Fatal("File read error: ", err)
+	}
+	return string(bs)
 }
 
 //testEqField is created to compare unorganized slice of zapcore.Field

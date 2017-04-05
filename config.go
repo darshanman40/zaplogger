@@ -2,8 +2,6 @@ package logger
 
 import (
 	"errors"
-	"io/ioutil"
-	"log"
 
 	"github.com/BurntSushi/toml"
 )
@@ -20,7 +18,8 @@ type Log struct {
 
 //App ...
 type App struct {
-	Log map[string]*Log
+	Log           map[string]*Log
+	LogBufferSize int `toml:"log_buffer_size"`
 }
 
 //LogConfig ...
@@ -28,38 +27,28 @@ type LogConfig map[string]*Log
 
 var app map[string]*Log
 
+var bufferSize int
+
 //LoadLogConfig ...
 func LoadLogConfig(data string, env string) (map[string]*Log, error) {
 
 	if data == "" {
-		return nil, errors.New("No file provided")
+		return nil, errors.New("No data provided")
 	}
-	var apps map[string]App //map[string]Broker
-
-	// data := getFile(filepath)
+	var apps map[string]App
 	if _, err := toml.Decode(data, &apps); err != nil {
 		return nil, err
 	}
 	tempapp, ok := apps[env]
+	bufferSize = tempapp.LogBufferSize
 	if !ok {
 		return nil, errors.New("Environment not found in configuration: " + env)
 	}
 	app = tempapp.Log
 	return app, nil
-
 }
 
-func getFile(fpath string) string {
-	if fpath == "" {
-		return ""
-	}
-	bs, err := ioutil.ReadFile(fpath)
-	if err != nil {
-		log.Fatal("File read error: ", err)
-	}
-	return string(bs)
+//GetLogBufferSize ...
+func getLogBufferSize() int {
+	return bufferSize
 }
-
-// //LogConfig ...
-// type LogConfig interface {
-// }
