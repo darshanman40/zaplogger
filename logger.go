@@ -18,7 +18,7 @@ const (
 
 	infolevelString  = "infolevel"
 	warnlevelString  = "warnlevel"
-	errlevelString   = "errlevel"
+	errlevelString   = "errorlevel"
 	paniclevelString = "paniclevel"
 	debuglevelString = "debuglevel"
 
