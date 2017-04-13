@@ -168,6 +168,26 @@ func GetFields(fields map[string]interface{}) []zapcore.Field {
 			zapFields[i] = zap.Int64(k, v)
 		case []int64:
 			zapFields[i] = zap.Int64s(k, v)
+		case uint:
+			zapFields[i] = zap.Uint(k, v)
+		case []uint:
+			zapFields[i] = zap.Uints(k, v)
+		case uint8:
+			zapFields[i] = zap.Uint8(k, v)
+		case []uint8:
+			zapFields[i] = zap.Uint8s(k, v)
+		case uint16:
+			zapFields[i] = zap.Uint16(k, v)
+		case []uint16:
+			zapFields[i] = zap.Uint16s(k, v)
+		case uint32:
+			zapFields[i] = zap.Uint32(k, v)
+		case []uint32:
+			zapFields[i] = zap.Uint32s(k, v)
+		case uint64:
+			zapFields[i] = zap.Uint64(k, v)
+		case []uint64:
+			zapFields[i] = zap.Uint64s(k, v)
 		case string:
 			zapFields[i] = zap.String(k, v)
 		case []string:
