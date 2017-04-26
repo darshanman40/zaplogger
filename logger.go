@@ -46,7 +46,8 @@ var (
 		EncodeDuration: zapcore.SecondsDurationEncoder,
 	}
 
-	zapMap map[string]func(string, ...zapcore.Field)
+	// zapMap map[string]func(string, ...zapcore.Field)
+	zapInfo, zapWarn, zapErr, zapPanic, zapDebug func(string, ...zapcore.Field)
 )
 
 //Logger to implement zap logger
@@ -88,6 +89,9 @@ var (
 )
 
 func (l *logger) Info(msg string, opts map[string]interface{}) {
+	if l.logInfo == nil {
+		return
+	}
 	if l.infoAsync {
 		logChan <- logMessages{logType: infostring, msg: msg, fields: opts}
 		return
@@ -97,6 +101,9 @@ func (l *logger) Info(msg string, opts map[string]interface{}) {
 }
 
 func (l *logger) Warning(msg string, opts map[string]interface{}) {
+	if l.logWarn == nil {
+		return
+	}
 	if l.warnAsync {
 		logChan <- logMessages{logType: warnstring, msg: msg, fields: opts}
 		return
@@ -107,6 +114,9 @@ func (l *logger) Warning(msg string, opts map[string]interface{}) {
 }
 
 func (l *logger) Error(msg string, opts map[string]interface{}) {
+	if l.logErr == nil {
+		return
+	}
 	if l.errAsync {
 		logChan <- logMessages{logType: errstring, msg: msg, fields: opts}
 		return
@@ -117,6 +127,9 @@ func (l *logger) Error(msg string, opts map[string]interface{}) {
 }
 
 func (l *logger) Panic(msg string, opts map[string]interface{}) {
+	if l.logPanic == nil {
+		return
+	}
 	if l.panicAsync {
 		logChan <- logMessages{logType: panicstring, msg: msg, fields: opts}
 		return
@@ -126,6 +139,9 @@ func (l *logger) Panic(msg string, opts map[string]interface{}) {
 }
 
 func (l *logger) Debug(msg string, opts map[string]interface{}) {
+	if l.logDebug == nil {
+		return
+	}
 	if l.debugAsync {
 		logChan <- logMessages{logType: debugstring, msg: msg, fields: opts}
 		return
@@ -219,17 +235,23 @@ func GetFields(fields map[string]interface{}) []zapcore.Field {
 //GetInstance to retrieve single instance of Logger
 func GetInstance() Logger {
 	if logr == nil {
-		logr = NewLogger(emptyString, emptyString)
+		logr, _ = NewLogger(emptyString, emptyString)
 	}
 	return logr
 }
 
 //GetZapLogger ..
-func GetZapLogger(ws zapcore.WriteSyncer, l *Log) *zap.Logger {
+func GetZapLogger(ws zapcore.WriteSyncer, l *Log, logLevel string) (*zap.Logger, bool) {
+	if l == nil {
+		log.Println("no config found for ", logLevel)
+		log.Println("ignoring ", logLevel)
+		return nil, false
+	}
 	var z []zap.Option
 
 	var zc zapcore.Core
 	var zl zapcore.Level
+
 	if l.Tracelevel != emptyString {
 		zl = getLevel(l.Tracelevel)
 	}
@@ -250,7 +272,7 @@ func GetZapLogger(ws zapcore.WriteSyncer, l *Log) *zap.Logger {
 
 	zc = zapCoreConfig(ws, zl)
 	newZap := zap.New(zc, z...)
-	return newZap
+	return newZap, l.Async
 
 }
 
@@ -279,7 +301,7 @@ func zapCoreConfig(ws zapcore.WriteSyncer, l zapcore.Level) zapcore.Core {
 }
 
 //NewLogger Get new instance of Logger
-func NewLogger(data, env string) Logger {
+func NewLogger(data, env string) (Logger, error) {
 
 	l, err := LoadLogConfig(data, env)
 	if err != nil {
@@ -290,7 +312,7 @@ func NewLogger(data, env string) Logger {
 		log.Fatal(errorAtLogger, err)
 	}
 	var loger *logger
-	zapMap = make(map[string]func(string, ...zapcore.Field))
+	// zapMap = make(map[string]func(string, ...zapcore.Field))
 	if l == nil {
 		loger = &logger{
 			logInfo:    zap.NewNop(),
@@ -307,42 +329,82 @@ func NewLogger(data, env string) Logger {
 		}
 	} else {
 
-		loger = &logger{
-			logInfo:    GetZapLogger(ws, l[infostring]),
-			infoAsync:  l[infostring].Async,
-			logWarn:    GetZapLogger(ws, l[warnstring]),
-			warnAsync:  l[warnstring].Async,
-			logErr:     GetZapLogger(ws, l[errstring]),
-			errAsync:   l[errstring].Async,
-			logPanic:   GetZapLogger(ws, l[panicstring]),
-			panicAsync: l[panicstring].Async,
-			logDebug:   GetZapLogger(ws, l[debugstring]),
-			debugAsync: l[debugstring].Async,
-			fileClose:  f,
-		}
+		loger = &logger{}
+		loger.logInfo, loger.infoAsync = GetZapLogger(ws, l[infostring], infostring)
+		loger.logWarn, loger.warnAsync = GetZapLogger(ws, l[warnstring], warnstring)
+		loger.logErr, loger.errAsync = GetZapLogger(ws, l[errstring], errstring)
+		loger.logPanic, loger.panicAsync = GetZapLogger(ws, l[panicstring], panicstring)
+		loger.logDebug, loger.debugAsync = GetZapLogger(ws, l[debugstring], debugstring)
+		loger.fileClose = f
+		//
+		// logInfo:    GetZapLogger(ws, l[infostring]),
+		// infoAsync:  l[infostring].Async,
+		// logWarn:    GetZapLogger(ws, l[warnstring]),
+		// warnAsync:  l[warnstring].Async,
+		// logErr:     GetZapLogger(ws, l[errstring]),
+		// errAsync:   l[errstring].Async,
+		// logPanic:   GetZapLogger(ws, l[panicstring]),
+		// panicAsync: l[panicstring].Async,
+		// logDebug:   GetZapLogger(ws, l[debugstring]),
+		// debugAsync: l[debugstring].Async,
+		// fileClose:  f,
+		// }
 	}
 
 	logr = loger
 
-	zapMap[infostring] = loger.logInfo.Info
-	zapMap[warnstring] = loger.logWarn.Warn
-	zapMap[errstring] = loger.logErr.Error
-	zapMap[panicstring] = loger.logPanic.Panic
-	zapMap[debugstring] = loger.logDebug.Debug
+	// zapMap[infostring]
+	zapInfo = loger.logInfo.Info
+	// zapMap[warnstring]
+	zapWarn = loger.logWarn.Warn
+	// zapMap[errstring]
+	zapErr = loger.logErr.Error
+	// zapMap[panicstring]
+	zapPanic = loger.logPanic.Panic
+	// zapMap[debugstring]
+	zapDebug = loger.logDebug.Debug
 
-	logChan = make(chan logMessages, getLogBufferSize())
+	logChan = make(chan logMessages) //, getLogBufferSize())
 
 	log.Println(staringLogroutine)
-	go LogRoutine()
-	return logr
+	go logRoutine()
+	return logr, nil
 }
 
 //LogRoutine ...
-func LogRoutine() {
+func logRoutine() {
 
-	for l := range logChan {
-		opts := GetFields(l.fields)
-		zapMap[l.logType](l.msg, opts...)
+	// for l := range logChan {
+	// 	opts := GetFields(l.fields)
+	// 	zapMap[l.logType](l.msg, opts...)
+	// }
+	for {
+		// defer func() {
+		// 	if r := recover(); r != nil {
+		// 		log.Println("Recovered in LogRoutine")
+		// 		if logChan == nil {
+		// 			logChan = make(chan logMessages)
+		// 			go logRoutine()
+		// 		}
+		// 	}
+		// }()
+		select {
+		case l := <-logChan:
+			opts := GetFields(l.fields)
+			switch l.logType {
+			case infostring:
+				zapInfo(l.msg, opts...)
+			case warnstring:
+				zapWarn(l.msg, opts...)
+			case errstring:
+				zapErr(l.msg, opts...)
+			case panicstring:
+				zapPanic(l.msg, opts...)
+			case debugstring:
+				zapDebug(l.msg, opts...)
+			}
+
+			//zapMap[l.logType](l.msg, opts...)
+		}
 	}
-
 }

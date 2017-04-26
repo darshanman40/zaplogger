@@ -147,7 +147,10 @@ func TestGetFile(t *testing.T) {
 
 func TestLoadLogger(t *testing.T) {
 
-	l := NewLogger(getFile("config.sample.toml"), "debug")
+	l, err := NewLogger(getFile("config.sample.toml"), "debug")
+	if err != nil {
+		t.Error(err)
+	}
 	if l != GetInstance() {
 		t.Fail()
 	}
@@ -155,7 +158,10 @@ func TestLoadLogger(t *testing.T) {
 
 func TestEmptyLogger(t *testing.T) {
 
-	l := NewLogger("", "")
+	l, err := NewLogger("", "")
+	if err != nil {
+		t.Error(err)
+	}
 	if l != GetInstance() {
 		t.Fail()
 	}
@@ -281,7 +287,7 @@ func TestGetFields(t *testing.T) {
 }
 
 func BenchmarkFullAsync(b *testing.B) {
-	l := NewLogger(getFile("config.sample.toml"), "debug")
+	l, _ := NewLogger(getFile("config.sample.toml"), "debug")
 	for i := 0; i < b.N; i++ {
 		l.Info("test", map[string]interface{}{
 			"test type": "async",
@@ -290,7 +296,10 @@ func BenchmarkFullAsync(b *testing.B) {
 }
 
 func BenchmarkFullSync(b *testing.B) {
-	l := NewLogger(syncLogConfig, "debug")
+	l, err := NewLogger(syncLogConfig, "debug")
+	if err != nil {
+		b.Error(err)
+	}
 	for i := 0; i < b.N; i++ {
 		l.Info("test", map[string]interface{}{
 			"test type": "sync",
